@@ -13,6 +13,10 @@ public class PlayerBehavior : MonoBehaviour
 
     private InputManager inputManager;
 
+    private bool isWalking;
+
+    private int isWalkingAnimationHash;
+
     private Vector2 moveDirection;
     [SerializeField] private float velocity = 10f;
 
@@ -29,6 +33,8 @@ public class PlayerBehavior : MonoBehaviour
     private void Update()
     {
         Move();
+        GetAnimationParametersHash();   
+        PlayerAnimation();
     }
 
     private void Move()
@@ -43,12 +49,30 @@ public class PlayerBehavior : MonoBehaviour
         }
         moveDirection.x = inputManager.Player.Move.ReadValue<float>();
         rigidbody.velocity = new Vector2(moveDirection.x * velocity, rigidbody.velocity.y);
+        isWalking = moveDirection.x != 0;
     }
 
     private void SetInputParameter()
     {
         inputManager = new InputManager();
 
+    }
+
+    private void PlayerAnimation()
+    {
+        if (isWalking && animator.GetBool(isWalkingAnimationHash) == false)
+        {
+            animator.SetBool(isWalkingAnimationHash, true);
+        }
+        else if (isWalking == false && animator.GetBool(isWalkingAnimationHash) == true)
+        {
+            animator.SetBool(isWalkingAnimationHash, false);
+        }
+    }
+
+    private void GetAnimationParametersHash()
+    {
+        isWalkingAnimationHash = Animator.StringToHash("isWalking");
     }
 
     #region Enable/Disable
