@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
@@ -18,14 +19,18 @@ public class PlayerBehavior : MonoBehaviour
     private bool isSliding;
     private bool slidingCooldownIsOver;
 
+    private int stopSlidingAnimationHash;
     private int isWalkingAnimationHash;
     private int isSlidingAnimationHash;
 
+    private bool canSlide = true;
+    private bool currentSliding;
+    [SerializeField] private float slidingForce = 10f;
+    [SerializeField] private float slidingDuration = 1f;
+    [SerializeField] private float slideCooldown = 1f;
+
     private Vector2 moveDirection;
     [SerializeField] private float velocity = 10f;
-    [SerializeField] private float slideVelocity;
-    [SerializeField] private float slideDuration;
-    [SerializeField] private float slideCooldown;
 
     private void Awake()
     {
@@ -39,6 +44,12 @@ public class PlayerBehavior : MonoBehaviour
 
     private void Update()
     {
+
+        if (currentSliding)
+        {
+            return;
+        }
+
         Move();
         GetAnimationParametersHash();   
         PlayerAnimation();
@@ -62,25 +73,24 @@ public class PlayerBehavior : MonoBehaviour
     private void Slide(InputAction.CallbackContext inputContext)
     {
         isSliding = inputContext.ReadValueAsButton();
-        if (isSliding == true)
+        if (isSliding == true && canSlide == true)
         {
-            StartCoroutine(SlidingAction());
+            StartCoroutine(Sliding());
         }
     }
-
-    IEnumerator SlidingAction()
+    private IEnumerator Sliding()
     {
-        Debug.Log("COMEÇOU");
         animator.SetBool(isSlidingAnimationHash, true);
-        yield return new WaitForSeconds(1000f);
-        Debug.Log("TERMINOU");
+        canSlide = false;
+        currentSliding = true;
+        rigidbodyPlayer.velocity = new Vector2(moveDirection.x * slidingForce, 0f);
+        yield return new WaitForSeconds(slidingDuration);
         animator.SetBool(isSlidingAnimationHash, false);
-
-    }
-
-    private void SlideAnimationEnd()
-    {
-        animator.SetTrigger(isSlidingAnimationHash);
+        animator.SetTrigger(stopSlidingAnimationHash);
+        currentSliding = false;
+        yield return new WaitForSeconds(slideCooldown);
+        animator.ResetTrigger(stopSlidingAnimationHash);
+        canSlide = true;
     }
 
     private void SetInputParameter()
@@ -102,21 +112,13 @@ public class PlayerBehavior : MonoBehaviour
         {
             animator.SetBool(isWalkingAnimationHash, false);
         }
-
-        if (isSliding && animator.GetBool(isSlidingAnimationHash) == false)
-        {
-            animator.SetBool(isSlidingAnimationHash, true);
-        }
-        else if (isSliding == false && animator.GetBool(isSlidingAnimationHash) == true)
-        {
-            animator.SetBool(isSlidingAnimationHash, false);
-        }
     }
 
     private void GetAnimationParametersHash()
     {
         isSlidingAnimationHash = Animator.StringToHash("isSliding");
         isWalkingAnimationHash = Animator.StringToHash("isWalking");
+        stopSlidingAnimationHash = Animator.StringToHash("stopSliding");
     }
 
     #region Enable/Disable
